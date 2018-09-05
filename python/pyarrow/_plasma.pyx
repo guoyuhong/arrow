@@ -144,6 +144,8 @@ cdef extern from "plasma/client.h" nogil:
 
         CStatus Delete(const c_vector[CUniqueID] object_ids)
 
+        void InitGlog();
+
 cdef extern from "plasma/client.h" nogil:
 
     cdef struct CObjectBuffer" plasma::ObjectBuffer":
@@ -701,6 +703,14 @@ cdef class PlasmaClient:
             ids.push_back(object_id.data)
         with nogil:
             check_status(self.client.get().Delete(ids))
+
+    def initlog(self):
+        """
+        Init glog.
+
+        """
+        with nogil:
+            self.client.get().InitGlog()
 
     def list(self):
         """

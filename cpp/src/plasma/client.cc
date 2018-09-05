@@ -1124,4 +1124,13 @@ bool PlasmaClient::IsInUse(const ObjectID& object_id) {
   return impl_->IsInUse(object_id);
 }
 
+bool PlasmaClient::is_log_init_ = false;
+
+void PlasmaClient::InitGlog() {
+  if (!is_log_init_) {
+    arrow::ArrowLog::StartArrowLog("PlasmaClient", ARROW_INFO);
+    is_log_init_ = true;
+  }
+}
+
 }  // namespace plasma

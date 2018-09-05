@@ -328,6 +328,8 @@ class ARROW_EXPORT PlasmaClient {
   /// \return The return status.
   Status Info(const ObjectID& object_id, int* object_status);
 
+  void InitGlog();
+
   /// Get the file descriptor for the socket connection to the plasma manager.
   ///
   /// \return The file descriptor for the manager connection. If there is no
@@ -335,6 +337,7 @@ class ARROW_EXPORT PlasmaClient {
   int get_manager_fd() const;
 
  private:
+  static bool is_log_init_;
   friend class PlasmaBuffer;
   FRIEND_TEST(TestPlasmaStore, GetTest);
   FRIEND_TEST(TestPlasmaStore, LegacyGetTest);
