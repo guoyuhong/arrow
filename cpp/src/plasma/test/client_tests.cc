@@ -240,6 +240,15 @@ TEST_F(TestPlasmaStore, DeleteObjectsTest) {
   ASSERT_FALSE(has_object);
   ARROW_CHECK_OK(client_.Contains(object_id2, &has_object));
   ASSERT_FALSE(has_object);
+  // The following case was a bug in plasma client.
+  /*object_id1 = random_object_id();
+  ARROW_CHECK_OK(client_.Create(object_id1, data_size, metadata, metadata_size, &data));
+  ARROW_CHECK_OK(client_.Release(object_id1));
+  //ARROW_CHECK_OK(client_.Get({object_id1}, 0, &object_buffers));
+  result = client_.Delete({object_id1});
+  ARROW_CHECK_OK(client_.Abort(object_id1));
+  ARROW_CHECK_OK(client_.Release(object_id1));
+  client_.FlushReleaseHistory();*/
 }
 
 TEST_F(TestPlasmaStore, ContainsTest) {
@@ -595,6 +604,7 @@ TEST_F(TestPlasmaStore, MultipleClientGPUTest) {
 }  // namespace plasma
 
 int main(int argc, char** argv) {
+  arrow::ArrowLog::StartArrowLog(argv[0], ARROW_INFO);
   ::testing::InitGoogleTest(&argc, argv);
   plasma::test_executable = std::string(argv[0]);
   return RUN_ALL_TESTS();

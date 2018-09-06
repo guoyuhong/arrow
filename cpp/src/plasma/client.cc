@@ -223,7 +223,7 @@ class PlasmaClient::Impl : public std::enable_shared_from_this<PlasmaClient::Imp
   /// gone out of scope, either by calling Release or Abort.
   ///
   /// @param object_id The object ID whose data we should unmap.
-  Status UnmapObject(const ObjectID& object_id);
+  Status UnmapObject(const ObjectID& object_id, bool doDelete);
 
   Status PerformRelease(const ObjectID& object_id);
 
@@ -578,7 +578,7 @@ Status PlasmaClient::Impl::Get(const ObjectID* object_ids, int64_t num_objects,
   return GetBuffers(object_ids, num_objects, timeout_ms, wrap_buffer, out);
 }
 
-Status PlasmaClient::Impl::UnmapObject(const ObjectID& object_id) {
+Status PlasmaClient::Impl::UnmapObject(const ObjectID& object_id, bool doDelete) {
   auto object_entry = objects_in_use_.find(object_id);
   ARROW_CHECK(object_entry != objects_in_use_.end());
   ARROW_CHECK(object_entry->second->count == 0);
@@ -610,6 +610,13 @@ Status PlasmaClient::Impl::UnmapObject(const ObjectID& object_id) {
   DCHECK_GE(in_use_object_bytes_, 0);
   // Remove the entry from the hash table of objects currently in use.
   objects_in_use_.erase(object_id);
+  auto iter = deletion_cache_.find(object_id);
+  if (iter != deletion_cache_.end()) {
+    deletion_cache_.erase(object_id);
+    if (doDelete) {
+      RETURN_NOT_OK(Delete({object_id}));
+    }
+  }
   return Status::OK();
 }
 
@@ -633,13 +640,8 @@ Status PlasmaClient::Impl::PerformRelease(const ObjectID& object_id) {
   // Check if the client is no longer using this object.
   if (object_entry->second->count == 0) {
     // Tell the store that the client no longer needs the object.
-    RETURN_NOT_OK(UnmapObject(object_id));
+    RETURN_NOT_OK(UnmapObject(object_id, true));
     RETURN_NOT_OK(SendReleaseRequest(store_conn_, object_id));
-    auto iter = deletion_cache_.find(object_id);
-    if (iter != deletion_cache_.end()) {
-      deletion_cache_.erase(object_id);
-      RETURN_NOT_OK(Delete({object_id}));
-    }
   }
   return Status::OK();
 }
@@ -827,7 +829,7 @@ Status PlasmaClient::Impl::Abort(const ObjectID& object_id) {
   RETURN_NOT_OK(SendAbortRequest(store_conn_, object_id));
   // Decrease the reference count to zero, then remove the object.
   object_entry->second->count--;
-  RETURN_NOT_OK(UnmapObject(object_id));
+  RETURN_NOT_OK(UnmapObject(object_id, false));
 
   std::vector<uint8_t> buffer;
   ObjectID id;
