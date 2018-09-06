@@ -961,6 +961,7 @@ Status PlasmaClient::Impl::Disconnect() {
     close(manager_conn_);
     manager_conn_ = -1;
   }
+  release_history_.clear();
   return Status::OK();
 }
 
