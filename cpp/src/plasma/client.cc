@@ -647,6 +647,7 @@ Status PlasmaClient::Impl::PerformRelease(const ObjectID& object_id) {
 }
 
 Status PlasmaClient::Impl::Release(const ObjectID& object_id) {
+  ARROW_LOG(WARNING) << "PlasmaClient::Impl::Release: " << object_id.hex();
   // If an object is in the deletion cache, handle it directly without waiting.
   auto iter = deletion_cache_.find(object_id);
   if (iter != deletion_cache_.end()) {
@@ -784,6 +785,7 @@ uint64_t PlasmaClient::Impl::ComputeObjectHash(const ObjectBuffer& obj_buffer) {
 }
 
 Status PlasmaClient::Impl::Seal(const ObjectID& object_id) {
+  ARROW_LOG(WARNING) << "PlasmaClient::Impl::Seal: " << object_id.hex();
   // Make sure this client has a reference to the object before sending the
   // request to Plasma.
   auto object_entry = objects_in_use_.find(object_id);
