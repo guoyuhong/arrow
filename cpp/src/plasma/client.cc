@@ -39,6 +39,7 @@
 #include <algorithm>
 #include <deque>
 #include <mutex>
+#include <sstream>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -961,7 +962,13 @@ Status PlasmaClient::Impl::Disconnect() {
     close(manager_conn_);
     manager_conn_ = -1;
   }
-  release_history_.clear();
+  //release_history_.clear();
+  std::ostringstream stream;
+  for (auto &id : release_history_) {
+    stream << id.hex() << " ";
+  }
+  ARROW_LOG(ERROR) << "PlasmaClient::Impl::Disconnect() called with " << release_history_.size()
+                   << "items in release_history_:" << stream.str();
   return Status::OK();
 }
 
