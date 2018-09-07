@@ -635,7 +635,12 @@ Status PlasmaClient::Impl::PerformRelease(const ObjectID& object_id) {
   // being used by this client. The corresponding increment should have happened
   // in PlasmaClient::Get.
   auto object_entry = objects_in_use_.find(object_id);
-  ARROW_CHECK(object_entry != objects_in_use_.end());
+  std::ostringstream stream;
+  for (auto &id : release_history_) {
+    stream << id.hex() << " ";
+  }
+  ARROW_CHECK(object_entry != objects_in_use_.end()) << " while releaseing object: " << object_id.hex()
+      << ". Current store_conn_=" << store_conn_ << " . release_history_=" << stream.str();
   object_entry->second->count -= 1;
   ARROW_CHECK(object_entry->second->count >= 0);
   // Check if the client is no longer using this object.
@@ -652,6 +657,7 @@ Status PlasmaClient::Impl::Release(const ObjectID& object_id) {
   // If an object is in the deletion cache, handle it directly without waiting.
   auto iter = deletion_cache_.find(object_id);
   if (iter != deletion_cache_.end()) {
+    ARROW_LOG(WARNING) << "Calling PerformRelease due to deletion_cache_: " << object_id.hex();
     RETURN_NOT_OK(PerformRelease(object_id));
     return Status::OK();
   }
@@ -956,6 +962,14 @@ Status PlasmaClient::Impl::Disconnect() {
 
   // Close the connections to Plasma. The Plasma store will release the objects
   // that were in use by us when handling the SIGPIPE.
+  
+  std::ostringstream stream;
+  for (auto &id : release_history_) {
+    stream << id.hex() << " ";
+  }
+  ARROW_LOG(ERROR) << "PlasmaClient::Impl::Disconnect() called (before `close(store_conn_);`) with " 
+                   << release_history_.size()
+                   << " items in release_history_:" << stream.str();
   close(store_conn_);
   store_conn_ = -1;
   if (manager_conn_ >= 0) {
@@ -963,12 +977,6 @@ Status PlasmaClient::Impl::Disconnect() {
     manager_conn_ = -1;
   }
   //release_history_.clear();
-  std::ostringstream stream;
-  for (auto &id : release_history_) {
-    stream << id.hex() << " ";
-  }
-  ARROW_LOG(ERROR) << "PlasmaClient::Impl::Disconnect() called with " << release_history_.size()
-                   << "items in release_history_:" << stream.str();
   return Status::OK();
 }
 
