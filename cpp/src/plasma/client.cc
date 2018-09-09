@@ -285,7 +285,6 @@ class PlasmaClient::Impl : public std::enable_shared_from_this<PlasmaClient::Imp
 PlasmaBuffer::~PlasmaBuffer() { ARROW_UNUSED(client_->Release(object_id_)); }
 
 PlasmaClient::Impl::Impl() {
-  ARROW_LOG(WARNING) << "PlasmaClient::Impl::Impl() with pid=" << getpid();
 #ifdef PLASMA_GPU
   DCHECK_OK(CudaDeviceManager::GetInstance(&manager_));
 #endif
@@ -940,6 +939,8 @@ Status PlasmaClient::Impl::Connect(const std::string& store_socket_name,
                                    const std::string& manager_socket_name,
                                    int release_delay, int num_retries) {
   RETURN_NOT_OK(ConnectIpcSocketRetry(store_socket_name, num_retries, -1, &store_conn_));
+  ARROW_LOG(WARNING) << "PlasmaClient::Impl::Connect with pid=" << getpid()
+                     << " and store_conn_=" << store_conn_;
   if (manager_socket_name != "") {
     RETURN_NOT_OK(
         ConnectIpcSocketRetry(manager_socket_name, num_retries, -1, &manager_conn_));

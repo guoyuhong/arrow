@@ -329,6 +329,8 @@ class ARROW_EXPORT PlasmaClient {
   Status Info(const ObjectID& object_id, int* object_status);
 
   void InitGlog();
+  
+  bool IsInUse(const ObjectID& object_id);
 
   /// Get the file descriptor for the socket connection to the plasma manager.
   ///
@@ -346,8 +348,6 @@ class ARROW_EXPORT PlasmaClient {
   /// This is a helper method that flushes all pending release calls to the
   /// store.
   Status FlushReleaseHistory();
-
-  bool IsInUse(const ObjectID& object_id);
 
   class ARROW_NO_EXPORT Impl;
   std::shared_ptr<Impl> impl_;

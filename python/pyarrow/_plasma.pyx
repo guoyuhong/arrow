@@ -144,6 +144,8 @@ cdef extern from "plasma/client.h" nogil:
 
         CStatus Delete(const c_vector[CUniqueID] object_ids)
 
+        c_bool IsInUse(const CUniqueID& object_id)
+
         void InitGlog();
 
 cdef extern from "plasma/client.h" nogil:
@@ -342,6 +344,10 @@ cdef class PlasmaClient:
             check_status(self.client.get().Create(object_id.data, data_size,
                                                   <uint8_t*>(metadata.data()),
                                                   metadata.size(), &data))
+        if (not self.IsInUse(object_id)):
+            message = "ERROR: Object %s is not in use after Create" % object_id
+            print(message)
+            raise Exception(message)
         return self._make_mutable_plasma_buffer(object_id,
                                                 data.get().mutable_data(),
                                                 data_size)
@@ -711,6 +717,14 @@ cdef class PlasmaClient:
         """
         with nogil:
             self.client.get().InitGlog()
+
+    def IsInUse(self, ObjectID object_id):
+        """
+        Checkout whether a object is in use.
+        """
+        cdef c_bool ret;
+        ret = self.client.get().IsInUse(object_id.data)
+        return ret
 
     def list(self):
         """
