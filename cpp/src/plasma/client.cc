@@ -374,16 +374,34 @@ Status PlasmaClient::Impl::Create(const ObjectID& object_id, int64_t data_size,
                                   std::shared_ptr<Buffer>* data, int device_num) {
   ARROW_LOG(DEBUG) << "called plasma_create on conn " << store_conn_ << " with size "
                    << data_size << " and metadata size " << metadata_size;
-  RETURN_NOT_OK(
-      SendCreateRequest(store_conn_, object_id, data_size, metadata_size, device_num));
+  Status status =
+      SendCreateRequest(store_conn_, object_id, data_size, metadata_size, device_num);
+  if (!status.ok()) {
+    ARROW_LOG(ERROR) << "Calling SendCreateRequest and received: " << status.message()
+                     << " code="<<static_cast<int>(status.code())
+                     << ". The ObjectId=" << object_id.hex();
+    return status;
+  }
   std::vector<uint8_t> buffer;
-  RETURN_NOT_OK(PlasmaReceive(store_conn_, MessageType::PlasmaCreateReply, &buffer));
+  status = PlasmaReceive(store_conn_, MessageType::PlasmaCreateReply, &buffer);
+  if (!status.ok()) {
+    ARROW_LOG(ERROR) << "Calling PlasmaReceive and received: " << status.message()
+                     << " code="<<static_cast<int>(status.code())
+                     << ". The ObjectId=" << object_id.hex();
+    return status;
+  }
   ObjectID id;
   PlasmaObject object;
   int store_fd;
   int64_t mmap_size;
-  RETURN_NOT_OK(
-      ReadCreateReply(buffer.data(), buffer.size(), &id, &object, &store_fd, &mmap_size));
+  status = 
+      ReadCreateReply(buffer.data(), buffer.size(), &id, &object, &store_fd, &mmap_size);
+  if (!status.ok()) {
+    ARROW_LOG(ERROR) << "Calling ReadCreateReply and received: " << status.message()
+                     << " code="<<static_cast<int>(status.code())
+                     << ". The ObjectId=" << object_id.hex();
+    return status;
+  }
   // If the CreateReply included an error, then the store will not send a file
   // descriptor.
   if (device_num == 0) {
