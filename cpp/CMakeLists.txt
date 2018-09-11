@@ -257,7 +257,7 @@ Pass multiple labels by dividing with semicolons")
 
   option(ARROW_USE_GLOG
     "Build libraries with glog support for pluggable logging"
-    ON)
+    OFF)
 
   if (MSVC)
     option(ARROW_USE_CLCACHE
