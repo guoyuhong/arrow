@@ -154,13 +154,16 @@ class ArrowLog : public ArrowLogBase {
   static void InstallFailureSignalHandler();
 
  private:
-  void* logging_provider_;
-  /// True if log messages should be logged and false if they should be ignored.
+ /// True if log messages should be logged and false if they should be ignored.
   bool is_enabled_;
+  
+  void* logging_provider_;
+  
   static int severity_threshold_;
   // In InitGoogleLogging, it simply keeps the pointer.
   // We need to make sure the app name passed to InitGoogleLogging exist.
   static std::unique_ptr<char, std::default_delete<char[]>> app_name_;
+  static std::string working_dir_;
 
  protected:
   virtual std::ostream& Stream();

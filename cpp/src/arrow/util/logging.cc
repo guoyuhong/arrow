@@ -17,6 +17,7 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <unistd.h>
 
 #include "arrow/util/logging.h"
 
@@ -75,6 +76,7 @@ class CerrLog {
 
 int ArrowLog::severity_threshold_ = ARROW_INFO;
 std::unique_ptr<char, std::default_delete<char[]>> ArrowLog::app_name_;
+std::string ArrowLog::working_dir_;
 
 #ifdef ARROW_USE_GLOG
 
@@ -136,6 +138,11 @@ void ArrowLog::StartArrowLog(const std::string& app_name, int severity_threshold
     google::SetLogDestination(mapped_severity_threshold, log_dir.c_str());
   }
 #endif
+  char cwd[4096];
+  if (getcwd(cwd, sizeof(cwd)) != NULL) {
+       printf("Current working dir: %s\n", cwd);
+       working_dir_ = cwd;
+  }
 }
 
 void ArrowLog::ShutDownArrowLog() {
@@ -156,8 +163,11 @@ ArrowLog::ArrowLog(const char* file_name, int line_number, int severity)
       logging_provider_(nullptr) {
 #ifdef ARROW_USE_GLOG
   if (is_enabled_) {
-    logging_provider_ =
+    auto logging_provider =
         new google::LogMessage(file_name, line_number, GetMappedSeverity(severity));
+    logging_provider->stream() << "(" << app_name_.get() << "): ";
+    logging_provider_ = logging_provider;
+    char *getcwd(char *buf, size_t size);
   }
 #else
   logging_provider_ = new CerrLog(severity);
