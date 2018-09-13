@@ -25,50 +25,48 @@ CHECK_CXX_COMPILER_FLAG("-maltivec" CXX_SUPPORTS_ALTIVEC)
 
 # compiler flags that are common across debug/release builds
 
-if (MSVC)
+if (WIN32)
   # TODO(wesm): Change usages of C runtime functions that MSVC says are
   # insecure, like std::getenv
   add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 
-  # Use __declspec(dllexport) during library build, other users of the Arrow
-  # headers will see dllimport
-  add_definitions(-DARROW_EXPORTING)
-
-  # ARROW-1931 See https://github.com/google/googletest/issues/1318
-  #
-  # This is added to CMAKE_CXX_FLAGS instead of CXX_COMMON_FLAGS since only the
-  # former is passed into the external projects
-  if (MSVC_VERSION VERSION_GREATER 1900)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /D_SILENCE_TR1_NAMESPACE_DEPRECATION_WARNING")
-  endif()
-
-  if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    # clang-cl
-    set(CXX_COMMON_FLAGS "-EHsc")
-  elseif(${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS 19)
-    message(FATAL_ERROR "Only MSVC 2015 (Version 19.0) and later are supported
-    by Arrow. Found version ${CMAKE_CXX_COMPILER_VERSION}.")
-  else()
-    # Fix annoying D9025 warning
-    string(REPLACE "/W3" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-
-    # Set desired warning level (e.g. set /W4 for more warnings)
+  if (MSVC)
+    # ARROW-1931 See https://github.com/google/googletest/issues/1318
     #
-    # ARROW-2986: Without /EHsc we get C4530 warning
-    set(CXX_COMMON_FLAGS "/W3 /EHsc")
-  endif()
+    # This is added to CMAKE_CXX_FLAGS instead of CXX_COMMON_FLAGS since only the
+    # former is passed into the external projects
+    if (MSVC_VERSION VERSION_GREATER 1900)
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /D_SILENCE_TR1_NAMESPACE_DEPRECATION_WARNING")
+    endif()
 
-  if (ARROW_USE_STATIC_CRT)
-    foreach (c_flag CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_RELEASE CMAKE_CXX_FLAGS_DEBUG
-                    CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO
-                    CMAKE_C_FLAGS CMAKE_C_FLAGS_RELEASE CMAKE_C_FLAGS_DEBUG
-                    CMAKE_C_FLAGS_MINSIZEREL CMAKE_C_FLAGS_RELWITHDEBINFO)
-      string(REPLACE "/MD" "-MT" ${c_flag} "${${c_flag}}")
-    endforeach()
-  endif()
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+      # clang-cl
+      set(CXX_COMMON_FLAGS "-EHsc")
+    elseif(${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS 19)
+      message(FATAL_ERROR "Only MSVC 2015 (Version 19.0) and later are supported
+      by Arrow. Found version ${CMAKE_CXX_COMPILER_VERSION}.")
+    else()
+      # Fix annoying D9025 warning
+      string(REPLACE "/W3" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
-  # Support large object code
-  set(CXX_COMMON_FLAGS "${CXX_COMMON_FLAGS} /bigobj")
+      # Set desired warning level (e.g. set /W4 for more warnings)
+      #
+      # ARROW-2986: Without /EHsc we get C4530 warning
+      set(CXX_COMMON_FLAGS "/W3 /EHsc")
+    endif()
+
+    if (ARROW_USE_STATIC_CRT)
+      foreach (c_flag CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_RELEASE CMAKE_CXX_FLAGS_DEBUG
+		      CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO
+		      CMAKE_C_FLAGS CMAKE_C_FLAGS_RELEASE CMAKE_C_FLAGS_DEBUG
+		      CMAKE_C_FLAGS_MINSIZEREL CMAKE_C_FLAGS_RELWITHDEBINFO)
+	string(REPLACE "/MD" "-MT" ${c_flag} "${${c_flag}}")
+      endforeach()
+    endif()
+
+    # Support large object code
+    set(CXX_COMMON_FLAGS "${CXX_COMMON_FLAGS} /bigobj")
+  endif(MSVC)
 else()
   # Common flags set below with warning level
   set(CXX_COMMON_FLAGS "")
@@ -106,7 +104,7 @@ if ("${UPPERCASE_BUILD_WARNING_LEVEL}" STREQUAL "CHECKIN")
 -Wno-cast-align -Wno-vla-extension -Wno-shift-sign-overflow \
 -Wno-used-but-marked-unused -Wno-missing-variable-declarations \
 -Wno-gnu-zero-variadic-macro-arguments -Wconversion -Wno-sign-conversion \
--Wno-disabled-macro-expansion")
+-Wno-disabled-macro-expansion -Wno-format-nonliteral -Wno-missing-noreturn")
 
     # Version numbers where warnings are introduced
     if ("${COMPILER_VERSION}" VERSION_GREATER "3.3")
@@ -250,7 +248,7 @@ function(GET_GOLD_VERSION)
 endfunction()
 
 # Is the compiler hard-wired to use the gold linker?
-if (NOT MSVC AND NOT APPLE)
+if (NOT WIN32 AND NOT APPLE)
   GET_GOLD_VERSION()
   if (GOLD_VERSION)
     set(MUST_USE_GOLD 1)

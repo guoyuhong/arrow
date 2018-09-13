@@ -60,6 +60,7 @@ matrix:
     - ARROW_TRAVIS_ORC=1
     - ARROW_TRAVIS_CLANG_FORMAT=1
     - ARROW_TRAVIS_COVERAGE=1
+    - ARROW_TRAVIS_PARQUET=1
     - ARROW_TRAVIS_PYTHON_DOCS=1
     - ARROW_BUILD_WARNING_LEVEL=CHECKIN
     - ARROW_TRAVIS_PYTHON_JVM=1
@@ -77,11 +78,11 @@ matrix:
     - $TRAVIS_BUILD_DIR/ci/travis_install_clang_tools.sh
     - $TRAVIS_BUILD_DIR/ci/travis_lint.sh
     # If either C++ or Python changed, we must install the C++ libraries
+    - git submodule update --init
     - $TRAVIS_BUILD_DIR/ci/travis_before_script_cpp.sh
     script:
     # All test steps are required for accurate C++ coverage info
     - $TRAVIS_BUILD_DIR/ci/travis_script_cpp.sh
-    - $TRAVIS_BUILD_DIR/ci/travis_build_parquet_cpp.sh
     # Build Arrow Java to test the pyarrow<->JVM in-process bridge
     - $TRAVIS_BUILD_DIR/ci/travis_script_java.sh
     # Only run Plasma tests with valgrind in one of the Python builds because
@@ -102,14 +103,15 @@ matrix:
     - ARROW_TRAVIS_USE_TOOLCHAIN=1
     - ARROW_TRAVIS_PLASMA=1
     - ARROW_TRAVIS_ORC=1
+    - ARROW_TRAVIS_PARQUET=1
     - ARROW_BUILD_WARNING_LEVEL=CHECKIN
     before_script:
     - if [ $ARROW_CI_PYTHON_AFFECTED != "1" ]; then exit; fi
     # If either C++ or Python changed, we must install the C++ libraries
+    - git submodule update --init
     - $TRAVIS_BUILD_DIR/ci/travis_before_script_cpp.sh
     script:
     - if [ $ARROW_CI_CPP_AFFECTED == "1" ]; then $TRAVIS_BUILD_DIR/ci/travis_script_cpp.sh; fi
-    - $TRAVIS_BUILD_DIR/ci/travis_build_parquet_cpp.sh
     - $TRAVIS_BUILD_DIR/ci/travis_script_python.sh 2.7
     - $TRAVIS_BUILD_DIR/ci/travis_script_python.sh 3.6
   # [manylinux1] Python
@@ -210,7 +212,6 @@ matrix:
   # Rust
   - language: rust
     cache: cargo
-    rust: stable
     addons:
       apt:
         packages:
@@ -221,17 +222,15 @@ matrix:
           - cmake
     before_script:
     - if [ $ARROW_CI_RUST_AFFECTED != "1" ]; then exit; fi
-    - pip install 'travis-cargo<0.2' --user && export PATH=$HOME/.local/bin:$PATH
-    - export CARGO_TARGET_DIR=$TRAVIS_BUILD_DIR/target
-    - cargo install cargo-travis || echo "Skipping cargo-travis installation as it already exists in cache"
-    - export PATH=$HOME/.cargo/bin:$PATH
+    - $TRAVIS_BUILD_DIR/ci/travis_install_cargo.sh
     script:
-    - $TRAVIS_BUILD_DIR/ci/travis_script_rust.sh
+    - RUSTUP_TOOLCHAIN=stable $TRAVIS_BUILD_DIR/ci/travis_script_rust.sh
+    - RUSTUP_TOOLCHAIN=nightly $TRAVIS_BUILD_DIR/ci/travis_script_rust.sh || true
     after_success:
     - pushd ${TRAVIS_BUILD_DIR}/rust
     # Run coverage for codecov.io
     - mkdir -p target/kcov
-    - RUST_BACKTRACE=1 cargo coverage --verbose
+    - RUST_BACKTRACE=1 RUSTUP_TOOLCHAIN=stable cargo coverage --verbose
     - bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
   # Go
   - language: go
@@ -246,6 +245,16 @@ matrix:
     after_success:
     - pushd ${TRAVIS_BUILD_DIR}/go/arrow
     - bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
+  # R
+  - language: r
+    cache: packages
+    latex: false
+    before_install:
+    - $TRAVIS_BUILD_DIR/ci/travis_install_linux.sh
+    - $TRAVIS_BUILD_DIR/ci/travis_before_script_cpp.sh --only-library
+    - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$TRAVIS_BUILD_DIR/cpp-install/lib
+    - export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$TRAVIS_BUILD_DIR/cpp-install/lib/pkgconfig
+    - pushd ${TRAVIS_BUILD_DIR}/r
 
 
 after_failure:

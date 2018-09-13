@@ -299,7 +299,7 @@ TEST_F(TestPlasmaStore, GetTest) {
   {
     auto metadata = object_buffers[0].metadata;
     object_buffers.clear();
-    ::arrow::AssertBufferEqual(*metadata, {42});
+    ::arrow::AssertBufferEqual(*metadata, std::string{42});
     ARROW_CHECK_OK(client_.FlushReleaseHistory());
     EXPECT_TRUE(client_.IsInUse(object_id));
   }

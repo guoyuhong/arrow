@@ -15,9 +15,20 @@
 # specific language governing permissions and limitations
 # under the License.
 
+# Miscellaneous utility code
+
+import six
 import warnings
 
-# Miscellaneous utility code
+try:
+    # pathlib might not be available
+    try:
+        import pathlib
+    except ImportError:
+        import pathlib2 as pathlib  # python 2 backport
+    _has_pathlib = True
+except ImportError:
+    _has_pathlib = False
 
 
 def implements(f):
@@ -35,3 +46,39 @@ def _deprecate_api(old_name, new_name, api, next_version):
         warnings.warn(msg, FutureWarning)
         return api(*args)
     return wrapper
+
+
+def _is_path_like(path):
+    # PEP519 filesystem path protocol is available from python 3.6, so pathlib
+    # doesn't implement __fspath__ for earlier versions
+    return (isinstance(path, six.string_types) or
+            hasattr(path, '__fspath__') or
+            (_has_pathlib and isinstance(path, pathlib.Path)))
+
+
+def _stringify_path(path):
+    """
+    Convert *path* to a string or unicode path if possible.
+    """
+    if isinstance(path, six.string_types):
+        return path
+
+    # checking whether path implements the filesystem protocol
+    try:
+        return path.__fspath__()  # new in python 3.6
+    except AttributeError:
+        # fallback pathlib ckeck for earlier python versions than 3.6
+        if _has_pathlib and isinstance(path, pathlib.Path):
+            return str(path)
+
+    raise TypeError("not a path-like object")
+
+
+def _deprecate_nthreads(use_threads, nthreads):
+    if nthreads is not None:
+        warnings.warn("`nthreads` argument is deprecated, "
+                      "pass `use_threads` instead", FutureWarning,
+                      stacklevel=3)
+        if nthreads > 1:
+            use_threads = True
+    return use_threads

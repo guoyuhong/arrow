@@ -15,22 +15,22 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#ifndef ARROW_IO_WINDOWS_COMPATIBILITY
-#define ARROW_IO_WINDOWS_COMPATIBILITY
+#include <string>
 
-#ifdef _WIN32
+#include <mex.h>
 
-// Windows defines min and max macros that mess up std::min/max
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
+#include "feather_reader.h"
+#include "util/handle_status.h"
 
-#include <winsock2.h>
-#include <windows.h>
+// MEX gateway function. This is the entry point for featherreadmex.cpp.
+void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
+  const std::string filename{mxArrayToUTF8String(prhs[0])};
 
-// TODO(wesm): address when/if we add windows support
-// #include <util/syserr_reporting.hpp>
+  // Read the given Feather file into memory.
+  std::shared_ptr<mlarrow::FeatherReader> feather_reader{nullptr};
+  mlarrow::util::HandleStatus(mlarrow::FeatherReader::Open(filename, &feather_reader));
 
-#endif  // _WIN32
-
-#endif  // ARROW_IO_WINDOWS_COMPATIBILITY
+  // Return the Feather file table variables and table metadata to MATLAB.
+  plhs[0] = feather_reader->ReadVariables();
+  plhs[1] = feather_reader->ReadMetadata();
+}
