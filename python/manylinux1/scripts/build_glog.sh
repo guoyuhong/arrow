@@ -1,3 +1,4 @@
+#!/bin/bash -ex
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,22 +16,22 @@
 # specific language governing permissions and limitations
 # under the License.
 
-# Toolchain library versions
+export GLOG_VERSION="0.3.5"
+export CFLAGS="-fPIC"
+export PREFIX="/usr"
+curl -sL "https://github.com/google/glog/archive/v${GLOG_VERSION}.tar.gz" -o glog-${GLOG_VERSION}.tar.gz
+tar xf glog-${GLOG_VERSION}.tar.gz
+pushd glog-${GLOG_VERSION}
 
-BOOST_VERSION=1.67.0
-GTEST_VERSION=1.8.0
-GFLAGS_VERSION=2.2.0
-GBENCHMARK_VERSION=1.4.1
-FLATBUFFERS_VERSION=1.9.0
-RAPIDJSON_VERSION=1.1.0
-JEMALLOC_VERSION=17c897976c60b0e6e4f4a365c751027244dada7a
-SNAPPY_VERSION=1.1.3
-BROTLI_VERSION=v0.6.0
-LZ4_VERSION=1.7.5
-ZLIB_VERSION=1.2.8
-ZSTD_VERSION=1.2.0
-PROTOBUF_VERSION=2.6.0
-GRPC_VERSION=1.12.1
-ORC_VERSION=1.5.1
-THRIFT_VERSION=0.11.0
-GLOG_VERSION=0.3.5
+cmake -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=${PREFIX} \
+      -DBUILD_SHARED_LIBS=OFF \
+      -DBUILD_TESTING=OFF \
+      -DWITH_GFLAGS=OFF \
+      -DCMAKE_CXX_FLAGS=${CFLAGS} \
+
+make -j5
+make install
+popd
+rm -rf glog-${GLOG_VERSION}.tar.gz.tar.gz glog-${GLOG_VERSION}
+
